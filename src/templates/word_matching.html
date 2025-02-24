@@ -3,279 +3,518 @@
 {% block title %}单词配对 - 英语单词学习系统{% endblock %}
 
 {% block content %}
-<div class="game-container">
-    <div class="game-header">
-        <h1>{{ word_set.name }}</h1>
-        <p class="description">{{ word_set.description }}</p>
-        <div class="game-stats">
-            <div class="timer">时间：<span id="timer">00:00</span></div>
-            <div class="errors">错误：<span id="error-count">0</span></div>
-        </div>
-    </div>
-
-    <div class="game-board">
-        <div id="english-words" class="word-column">
-            <h3>英文单词</h3>
-            <div class="words-container">
+<div id="nav-bar">
+    <div class="nav-item">当前词组：<span>{{ word_set.name }}</span></div>
+    <div class="nav-item">已用时间：<span id="current-time">00:00</span></div>
+    <div class="nav-item">正确率：<span id="accuracy">100%</span></div>
+</div>
+<div id="instruction">请完成英文单词和中文单词的配对</div>
+<div id="game-container" 
+    data-word-pairs-length="{{ word_pairs|length }}"
+    data-word-set-id="{{ word_set.id }}">
+    <div class="column english-column">
                 {% for word in word_pairs %}
-                <div class="word-card english" data-id="{{ word.id }}" data-word="{{ word.english }}">
+            <div class="bubble english" data-id="{{ word.id }}" onclick="speakWord('{{ word.english }}')">
                     {{ word.english }}
                 </div>
                 {% endfor %}
             </div>
-        </div>
-
-        <div id="chinese-words" class="word-column">
-            <h3>中文含义</h3>
-            <div class="words-container">
-                {% for word in word_pairs|shuffle %}
-                <div class="word-card chinese" data-id="{{ word.id }}" data-word="{{ word.chinese }}">
+    <div class="column chinese-column">
+        {% set shuffled_words = word_pairs|shuffle %}
+        {% for word in shuffled_words %}
+            <div class="bubble chinese" data-id="{{ word.id }}">
                     {{ word.chinese }}
                 </div>
                 {% endfor %}
-            </div>
         </div>
     </div>
 
-    <div class="game-controls">
-        <button id="check-btn" class="btn-primary" disabled>检查答案</button>
-        <button id="next-btn" class="btn-primary" style="display: none;">下一组</button>
+<div id="completion-message">
+    <p>恭喜完成所有配对！</p>
+    <p>配对错误次数：<span id="error-count">0</span></p>
+    <p>完成时间：<span id="completion-time"></span></p>
+    <p>花费时长：<span id="time-spent"></span></p>
+    <div id="error-words">
+        <p>配对错误的单词：</p>
+        <ul id="error-words-list"></ul>
+    </div>
+    <div class="completion-buttons">
+        <button id="next-set-btn" class="action-button">下一组单词</button>
+        <button id="retry-btn" class="action-button">重新练习</button>
     </div>
 </div>
-{% endblock %}
+
+<canvas id="canvas-effects"></canvas>
 
 {% block extra_css %}
 <style>
-.game-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.game-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.game-header h1 {
-    color: var(--text-color);
-    margin-bottom: 10px;
-}
-
-.description {
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-}
-
-.game-stats {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    font-size: 1.2rem;
-}
-
-.game-board {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin: 30px 0;
-}
-
-.word-column h3 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: var(--text-color);
-}
-
-.words-container {
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Microsoft YaHei', sans-serif;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    height: 100vh;
+    background: white;
 }
 
-.word-card {
+#nav-bar {
+    background: #f8f9fa;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 16px;
+    color: #495057;
+    z-index: 1000;
+    position: relative;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-item span {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+#instruction {
     background: white;
-    padding: 20px;
-    border-radius: 10px;
+    padding: 10px;
     text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: red;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+    position: relative;
+}
+
+#game-container {
+    flex: 1;
+    display: flex;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    position: relative;
+}
+
+.column {
+    flex: 1;
+    display: flex;
+    align-content: flex-start;
+    padding: 0 10px;
+    align-items: center;
+    flex-direction: column;
+}
+
+.bubble {
+    margin: 10px;
+    padding: 15px 30px;
+    border-radius: 30px;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    user-select: none;
+    position: relative;
 }
 
-.word-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.word-card.selected {
-    background: var(--primary-color);
+.english {
+    background: #a7377b;
     color: white;
 }
 
-.word-card.correct {
-    background: var(--success-color);
+.chinese {
+    background: #249b9c;
     color: white;
 }
 
-.word-card.wrong {
-    background: var(--danger-color);
-    color: white;
+.selected {
+    transform: scale(1.2) rotate(5deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
 }
 
-.game-controls {
+.matched {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+}
+
+#completion-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     text-align: center;
-    margin-top: 30px;
+    font-size: 24px;
+    display: none;
+    z-index: 2000;
 }
 
-.game-controls button {
-    margin: 0 10px;
+#canvas-effects {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1500;
 }
 
-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.result-icon {
+    position: absolute;
+    font-size: 40px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.connecting-line {
+    position: absolute;
+    background: #4CAF50;
+    height: 2px;
+    transform-origin: left center;
+    z-index: 900;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.central-icon {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 120px;
+    z-index: 2000;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.central-icon.show {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
 }
 
 @media (max-width: 768px) {
-    .game-board {
-        grid-template-columns: 1fr;
+    #nav-bar {
+        padding: 5px 10px;
+        font-size: 14px;
+        flex-wrap: wrap;
     }
+
+    .nav-item {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 5px 0;
+        min-width: 120px;
+    }
+
+    #instruction {
+        font-size: 18px;
+        padding: 8px;
+    }
+
+    #game-container {
+        flex-direction: column;
+        padding: 10px;
+    }
+    
+    .bubble {
+        font-size: 20px;
+        padding: 10px 20px;
+        margin: 8px;
+        width: 80%;
+        text-align: center;
+    }
+
+    #completion-message {
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        font-size: 16px;
+        padding: 20px;
+    }
+
+    .completion-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 20px;
+    }
+}
+
+.action-button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.completion-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
 }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let startTime = Date.now();
+// 获取服务器端变量
+const gameContainer = document.getElementById('game-container');
+const WORD_PAIRS_LENGTH = parseInt(gameContainer.dataset.wordPairsLength);
+const WORD_SET_ID = parseInt(gameContainer.dataset.wordSetId);
+
+let startTime = new Date();
 let errorCount = 0;
-let selectedCards = [];
-let matches = [];
-let gameCompleted = false;
+let errorWords = [];
+let selectedBubble = null;
+let canvas = document.getElementById('canvas-effects');
+let ctx = canvas.getContext('2d');
 
 // 更新计时器
 function updateTimer() {
-    if (gameCompleted) return;
-    
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
-    document.getElementById('timer').textContent = 
+    const currentTime = new Date();
+    const timeDiff = Math.floor((currentTime - startTime) / 1000);
+    const minutes = Math.floor(timeDiff / 60);
+    const seconds = timeDiff % 60;
+    document.getElementById('current-time').textContent = 
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
+// 更新正确率
+function updateAccuracy() {
+    const totalAttempts = errorCount + document.querySelectorAll('.matched').length / 2;
+    const accuracy = totalAttempts === 0 ? 100 : 
+        Math.round((1 - errorCount / totalAttempts) * 100);
+    document.getElementById('accuracy').textContent = `${accuracy}%`;
+}
+
+// 启动计时器
 setInterval(updateTimer, 1000);
 
-// 单词卡点击处理
-document.querySelectorAll('.word-card').forEach(card => {
-    card.addEventListener('click', () => {
-        if (gameCompleted || card.classList.contains('correct')) return;
-        
-        // 如果已经选中，取消选中
-        if (card.classList.contains('selected')) {
-            card.classList.remove('selected');
-            selectedCards = selectedCards.filter(c => c !== card);
-            document.getElementById('check-btn').disabled = true;
-            return;
-        }
-        
-        // 同一列只能选择一个
-        const isEnglish = card.classList.contains('english');
-        const sameTypeCards = document.querySelectorAll(
-            isEnglish ? '.english.selected' : '.chinese.selected'
-        );
-        sameTypeCards.forEach(c => {
-            c.classList.remove('selected');
-            selectedCards = selectedCards.filter(sc => sc !== c);
-        });
-        
-        // 添加新选中的卡片
-        card.classList.add('selected');
-        selectedCards.push(card);
-        
-        // 如果选中了两个卡片，启用检查按钮
-        document.getElementById('check-btn').disabled = selectedCards.length !== 2;
-    });
-});
+// 设置canvas大小
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// 检查答案
-document.getElementById('check-btn').addEventListener('click', () => {
-    if (selectedCards.length !== 2) return;
+// 发音功能
+function speakWord(word) {
+    if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(word.trim());
+        utterance.lang = 'en-US';
+        speechSynthesis.speak(utterance);
+    }
+}
+
+// 创建连接线
+function createLine(start, end) {
+    const line = document.createElement('div');
+    line.className = 'connecting-line';
+    document.getElementById('game-container').appendChild(line);
+
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+
+    line.style.width = `${distance}px`;
+    line.style.left = `${start.x}px`;
+    line.style.top = `${start.y}px`;
+    line.style.transform = `rotate(${angle}rad)`;
+
+    return line;
+}
+
+// 创建中央图标
+function createCentralIcon(isCorrect) {
+    // 移除已存在的图标
+    const existingIcon = document.querySelector('.central-icon');
+    if (existingIcon) {
+        existingIcon.remove();
+    }
+
+    const icon = document.createElement('div');
+    icon.className = 'central-icon';
+    icon.textContent = isCorrect ? '✓' : '✗';
+    icon.style.color = isCorrect ? '#4CAF50' : '#F44336';
+    document.body.appendChild(icon);
     
-    const [card1, card2] = selectedCards;
-    const isCorrect = card1.dataset.id === card2.dataset.id;
+    setTimeout(() => {
+        icon.classList.add('show');
+    }, 50);
     
-    if (isCorrect) {
-        card1.classList.add('correct');
-        card2.classList.add('correct');
-        matches.push({
-            word_id: card1.dataset.id,
-            correct: true
-        });
-    } else {
-        card1.classList.add('wrong');
-        card2.classList.add('wrong');
-        errorCount++;
+    setTimeout(() => {
+        icon.classList.remove('show');
+        setTimeout(() => icon.remove(), 300);
+    }, 1000);
+
+    // 更新正确率
+    updateAccuracy();
+}
+
+// 检查是否完成所有配对
+function checkCompletion() {
+    const matchedBubbles = document.querySelectorAll('.matched');
+    if (matchedBubbles.length === WORD_PAIRS_LENGTH * 2) {
+        const endTime = new Date();
+        const timeSpent = Math.floor((endTime - startTime) / 1000);
+        const minutes = Math.floor(timeSpent / 60);
+        const seconds = timeSpent % 60;
+
         document.getElementById('error-count').textContent = errorCount;
-        matches.push({
-            word_id: card1.dataset.id,
-            correct: false
-        });
-        
-        // 短暂显示错误状态后恢复
-        setTimeout(() => {
-            card1.classList.remove('wrong', 'selected');
-            card2.classList.remove('wrong', 'selected');
-        }, 1000);
-    }
-    
-    selectedCards = [];
-    document.getElementById('check-btn').disabled = true;
-    
-    // 检查是否完成所有配对
-    const correctPairs = document.querySelectorAll('.correct').length;
-    const totalPairs = document.querySelectorAll('.word-card').length;
-    
-    if (correctPairs === totalPairs) {
-        gameCompleted = true;
-        document.getElementById('check-btn').style.display = 'none';
-        document.getElementById('next-btn').style.display = 'inline-block';
-        
-        // 提交学习记录
-        submitResult();
-    }
-});
+        document.getElementById('completion-time').textContent = endTime.toLocaleString();
+        document.getElementById('time-spent').textContent = `${minutes} 分 ${seconds} 秒`;
 
-// 提交结果
-async function submitResult() {
-    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-    
-    try {
-        const response = await fetch('/api/submit_matching', {
+        const errorWordsList = document.getElementById('error-words-list');
+        errorWordsList.innerHTML = '';
+        errorWords.forEach(word => {
+            const li = document.createElement('li');
+            li.textContent = `${word.english} - ${word.chinese}`;
+            errorWordsList.appendChild(li);
+        });
+
+        // 保存学习记录
+        const recordData = {
+            word_set_id: WORD_SET_ID,
+            total_words: WORD_PAIRS_LENGTH,
+            error_count: errorCount,
+            time_spent: timeSpent
+        };
+
+        fetch('/save_learning_record', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                word_set_id: {{ word_set.id }},
-                matches: matches,
-                error_count: errorCount,
-                time_spent: timeSpent
-            })
-        });
+            body: JSON.stringify(recordData)
+        }).catch(error => console.error('保存学习记录失败:', error));
+
+        // 显示完成消息
+        const completionMessage = document.getElementById('completion-message');
+        completionMessage.style.display = 'block';
         
-        const result = await response.json();
-        if (!result.success) {
-            console.error('提交失败:', result.message);
-        }
-    } catch (error) {
-        console.error('提交错误:', error);
+        // 绑定按钮事件
+        document.getElementById('next-set-btn').onclick = () => {
+            window.location.reload(); // 重新加载页面获取新的单词组
+        };
+        
+        document.getElementById('retry-btn').onclick = () => {
+            completionMessage.style.display = 'none';
+            resetGame();
+        };
     }
 }
 
-// 下一组单词
-document.getElementById('next-btn').addEventListener('click', () => {
-    window.location.reload();
+// 重置游戏状态
+function resetGame() {
+    // 重置所有变量
+    startTime = new Date();
+    errorCount = 0;
+    errorWords = [];
+    selectedBubble = null;
+    
+    // 重置UI状态
+    document.querySelectorAll('.bubble').forEach(bubble => {
+        bubble.classList.remove('matched', 'selected');
+        bubble.style.opacity = '1';
+        bubble.style.pointerEvents = 'auto';
+    });
+    
+    // 重置计时器和正确率显示
+    document.getElementById('current-time').textContent = '00:00';
+    document.getElementById('accuracy').textContent = '100%';
+    
+    // 重新打乱中文单词顺序
+    const chineseColumn = document.querySelector('.chinese-column');
+    const chineseBubbles = Array.from(chineseColumn.children);
+    for (let i = chineseBubbles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        chineseColumn.appendChild(chineseBubbles[j]);
+    }
+}
+
+// 点击处理
+document.querySelectorAll('.bubble').forEach(bubble => {
+    bubble.addEventListener('click', function() {
+        // 如果正在显示完成消息，不处理点击事件
+        if (document.getElementById('completion-message').style.display === 'block') {
+            return;
+        }
+
+        if (this.classList.contains('matched')) return;
+
+        if (!selectedBubble) {
+            selectedBubble = this;
+            this.classList.add('selected');
+        } else {
+            if (this === selectedBubble) {
+                this.classList.remove('selected');
+                selectedBubble = null;
+                return;
+            }
+
+            const firstId = selectedBubble.dataset.id;
+            const secondId = this.dataset.id;
+
+            if (firstId === secondId) {
+                // 显示正确图标
+                createCentralIcon(true);
+
+                setTimeout(() => {
+                    selectedBubble.classList.add('matched');
+                    this.classList.add('matched');
+                    checkCompletion();
+                }, 500);
+            } else {
+                errorCount++;
+                // 显示错误图标
+                createCentralIcon(false);
+
+                const englishBubble = selectedBubble.classList.contains('english') ? 
+                    selectedBubble : this;
+                const chineseBubble = selectedBubble.classList.contains('chinese') ? 
+                    selectedBubble : this;
+
+                errorWords.push({
+                    english: englishBubble.textContent.trim(),
+                    chinese: chineseBubble.textContent.trim()
+                });
+            }
+
+            selectedBubble.classList.remove('selected');
+            selectedBubble = null;
+        }
+    });
 });
 </script>
+{% endblock %}
 {% endblock %} 

@@ -1,7 +1,17 @@
+-- 首先删除有外键关联的表数据
+DELETE FROM word_set_items;
+DELETE FROM learning_records;
+DELETE FROM words;
+DELETE FROM word_sets;
+
+-- 重置自增ID（如果需要）
+ALTER SEQUENCE word_sets_id_seq RESTART WITH 1;
+ALTER SEQUENCE words_id_seq RESTART WITH 1;
+ALTER SEQUENCE word_set_items_id_seq RESTART WITH 1;
+
 -- 插入单词集
 INSERT INTO word_sets (name, description, difficulty_level) VALUES
 ('五年级自然地理单词', '包含山川、地理等自然相关的单词', 3),
-('五年级动物单词', '常见动物相关的单词', 3),
 ('五年级日常生活单词', '日常生活中常用的单词', 3),
 ('五年级形容词', '常用形容词', 3);
 
@@ -24,18 +34,6 @@ INSERT INTO words (english, chinese, unit_id, difficulty_level) VALUES
 ('explore', '探险、探索', 1, 3),
 ('explorer', '探险家、探索者', 1, 3);
 
--- 插入动物相关单词
-INSERT INTO words (english, chinese, unit_id, difficulty_level) VALUES
-('elephant', '大象', 2, 3),
-('giraffe', '长颈鹿', 2, 3),
-('penguin', '企鹅', 2, 3),
-('dolphin', '海豚', 2, 3),
-('butterfly', '蝴蝶', 2, 3),
-('kangaroo', '袋鼠', 2, 3),
-('octopus', '章鱼', 2, 3),
-('peacock', '孔雀', 2, 3),
-('squirrel', '松鼠', 2, 3),
-('turtle', '乌龟', 2, 3);
 
 -- 插入日常生活单词
 INSERT INTO words (english, chinese, unit_id, difficulty_level) VALUES
@@ -74,6 +72,5 @@ SELECT
 FROM words
 JOIN word_sets ON 
     (words.unit_id = 1 AND word_sets.name = '五年级自然地理单词') OR
-    (words.unit_id = 2 AND word_sets.name = '五年级动物单词') OR
     (words.unit_id = 3 AND word_sets.name = '五年级日常生活单词') OR
     (words.unit_id = 4 AND word_sets.name = '五年级形容词'); 

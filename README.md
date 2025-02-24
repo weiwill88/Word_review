@@ -43,7 +43,7 @@ English_learning/
 
 ### 2. 克隆项目
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/weiwill88/Word_review
 cd English_learning
 ```
 
@@ -89,10 +89,9 @@ python src/app.py
 ```sql
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'teacher')),
-    class_id VARCHAR(50) NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,  -- 用户真实姓名
+    role VARCHAR(50) NOT NULL DEFAULT 'student',
+    class_id VARCHAR(50) NOT NULL DEFAULT '1',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 ```
