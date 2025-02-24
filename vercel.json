@@ -9,7 +9,8 @@
                 "runtime": "python3.9",
                 "includeFiles": [
                     "src/**",
-                    "requirements.txt"
+                    "requirements.txt",
+                    ".env"
                 ]
             }
         }
@@ -27,6 +28,7 @@
     "env": {
         "PYTHONPATH": ".",
         "FLASK_APP": "src/app.py",
-        "FLASK_ENV": "production"
+        "FLASK_ENV": "production",
+        "PYTHON_VERSION": "3.9"
     }
 } 
