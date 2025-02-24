@@ -13,21 +13,25 @@
     data-word-pairs-length="{{ word_pairs|length }}"
     data-word-set-id="{{ word_set.id }}">
     <div class="column english-column">
-                {% for word in word_pairs %}
+        {% for word in word_pairs %}
             <div class="bubble english" data-id="{{ word.id }}" onclick="speakWord('{{ word.english }}')">
-                    {{ word.english }}
-                </div>
-                {% endfor %}
+                {{ word.english }}
             </div>
+        {% endfor %}
+    </div>
     <div class="column chinese-column">
         {% set shuffled_words = word_pairs|shuffle %}
         {% for word in shuffled_words %}
             <div class="bubble chinese" data-id="{{ word.id }}">
-                    {{ word.chinese }}
-                </div>
-                {% endfor %}
-        </div>
+                {{ word.chinese }}
+            </div>
+        {% endfor %}
     </div>
+</div>
+
+<div id="next-set-container">
+    <button id="floating-next-btn" class="action-button" onclick="window.location.href='/word_matching'">下一组单词</button>
+</div>
 
 <div id="completion-message">
     <p>恭喜完成所有配对！</p>
@@ -182,12 +186,29 @@ body {
 
 .connecting-line {
     position: absolute;
-    background: #4CAF50;
     height: 2px;
+    background: none;
+    border-top: 2px dashed #e0e0e0;
     transform-origin: left center;
     z-index: 900;
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: all 0.5s ease;
+}
+
+.connecting-line::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid #e0e0e0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+.connecting-line.show {
+    opacity: 1;
 }
 
 .central-icon {
@@ -204,6 +225,34 @@ body {
 .central-icon.show {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
+}
+
+#next-set-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: none;
+}
+
+#floating-next-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#floating-next-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
 @media (max-width: 768px) {
@@ -252,6 +301,16 @@ body {
         font-size: 16px;
         padding: 10px;
         margin: 5px 0;
+    }
+
+    #next-set-container {
+        bottom: 10px;
+        right: 10px;
+    }
+
+    #floating-next-btn {
+        font-size: 14px;
+        padding: 8px 16px;
     }
 }
 
@@ -342,15 +401,30 @@ function createLine(start, end) {
     line.className = 'connecting-line';
     document.getElementById('game-container').appendChild(line);
 
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
+    const startRect = start.getBoundingClientRect();
+    const endRect = end.getBoundingClientRect();
+    const containerRect = gameContainer.getBoundingClientRect();
+    const scrollTop = gameContainer.scrollTop;
 
+    // 修正计算方式，使用offsetTop来获取元素相对于容器的实际位置
+    const startX = startRect.right - containerRect.left;
+    const startY = start.offsetTop + (start.offsetHeight / 2);
+    const endX = endRect.left - containerRect.left;
+    const endY = end.offsetTop + (end.offsetHeight / 2);
+
+    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    const angle = Math.atan2(endY - startY, endX - startX);
+
+    // 设置连线位置和角度
     line.style.width = `${distance}px`;
-    line.style.left = `${start.x}px`;
-    line.style.top = `${start.y}px`;
+    line.style.left = `${startX}px`;
+    line.style.top = `${startY}px`;
     line.style.transform = `rotate(${angle}rad)`;
+
+    // 添加显示动画
+    requestAnimationFrame(() => {
+        line.classList.add('show');
+    });
 
     return line;
 }
@@ -463,10 +537,18 @@ function resetGame() {
     }
 }
 
-// 点击处理
+// 检查是否显示下一组按钮
+function checkShowNextButton() {
+    const matchedPairs = document.querySelectorAll('.matched').length / 2;
+    const nextSetContainer = document.getElementById('next-set-container');
+    if (matchedPairs >= WORD_PAIRS_LENGTH / 2) { // 完成一半以上显示下一组按钮
+        nextSetContainer.style.display = 'block';
+    }
+}
+
+// 修改点击处理逻辑
 document.querySelectorAll('.bubble').forEach(bubble => {
     bubble.addEventListener('click', function() {
-        // 如果正在显示完成消息，不处理点击事件
         if (document.getElementById('completion-message').style.display === 'block') {
             return;
         }
@@ -490,10 +572,29 @@ document.querySelectorAll('.bubble').forEach(bubble => {
                 // 显示正确图标
                 createCentralIcon(true);
 
+                // 创建连接线
+                const englishBubble = selectedBubble.classList.contains('english') ? 
+                    selectedBubble : this;
+                const chineseBubble = selectedBubble.classList.contains('chinese') ? 
+                    selectedBubble : this;
+
+                // 移除之前的连线（如果存在）
+                const existingLines = document.querySelectorAll('.connecting-line');
+                existingLines.forEach(line => {
+                    if (line.dataset.englishId === englishBubble.dataset.id) {
+                        line.remove();
+                    }
+                });
+
+                const line = createLine(englishBubble, chineseBubble);
+                // 添加标识，以便后续可以找到对应的连线
+                line.dataset.englishId = englishBubble.dataset.id;
+
                 setTimeout(() => {
                     selectedBubble.classList.add('matched');
                     this.classList.add('matched');
                     checkCompletion();
+                    checkShowNextButton(); // 检查是否显示下一组按钮
                 }, 500);
             } else {
                 errorCount++;
