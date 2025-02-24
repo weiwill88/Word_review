@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 英语单词学习系统{% endblock %}
+
+{% block content %}
+<div class="landing-container">
+    <div class="hero-section">
+        <h1>趣味英语单词学习</h1>
+        <p class="hero-subtitle">让学习变得简单有趣</p>
+        {% if not current_user.is_authenticated %}
+        <div class="cta-buttons">
+            <a href="{{ url_for('login') }}" class="btn-primary">开始学习</a>
+            <a href="{{ url_for('register') }}" class="btn-secondary">注册账号</a>
+        </div>
+        {% else %}
+        <div class="cta-buttons">
+            <a href="{{ url_for('dashboard') }}" class="btn-primary">进入控制台</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="features-section">
+        <h2>特色功能</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🎮</span>
+                <h3>趣味配对</h3>
+                <p>通过游戏化的方式学习单词</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3>学习追踪</h3>
+                <p>实时记录学习进度</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🎯</span>
+                <h3>智能复习</h3>
+                <p>针对性复习错误单词</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h3>随时学习</h3>
+                <p>支持多设备访问</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.landing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.hero-section {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: 20px;
+    color: white;
+    margin-bottom: 60px;
+}
+
+.hero-section h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.features-section {
+    padding: 40px 0;
+}
+
+.features-section h2 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
+    color: var(--text-color);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.feature-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.feature-card h3 {
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.feature-card p {
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %} 

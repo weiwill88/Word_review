@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}单词配对 - 英语单词学习系统{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <div class="game-header">
+        <h1>{{ word_set.name }}</h1>
+        <p class="description">{{ word_set.description }}</p>
+        <div class="game-stats">
+            <div class="timer">时间：<span id="timer">00:00</span></div>
+            <div class="errors">错误：<span id="error-count">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-board">
+        <div id="english-words" class="word-column">
+            <h3>英文单词</h3>
+            <div class="words-container">
+                {% for word in word_pairs %}
+                <div class="word-card english" data-id="{{ word.id }}" data-word="{{ word.english }}">
+                    {{ word.english }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="chinese-words" class="word-column">
+            <h3>中文含义</h3>
+            <div class="words-container">
+                {% for word in word_pairs|shuffle %}
+                <div class="word-card chinese" data-id="{{ word.id }}" data-word="{{ word.chinese }}">
+                    {{ word.chinese }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="game-controls">
+        <button id="check-btn" class="btn-primary" disabled>检查答案</button>
+        <button id="next-btn" class="btn-primary" style="display: none;">下一组</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.game-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-header h1 {
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.description {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.game-stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 1.2rem;
+}
+
+.game-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.word-column h3 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.words-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.word-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.word-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.word-card.selected {
+    background: var(--primary-color);
+    color: white;
+}
+
+.word-card.correct {
+    background: var(--success-color);
+    color: white;
+}
+
+.word-card.wrong {
+    background: var(--danger-color);
+    color: white;
+}
+
+.game-controls {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.game-controls button {
+    margin: 0 10px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .game-board {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let startTime = Date.now();
+let errorCount = 0;
+let selectedCards = [];
+let matches = [];
+let gameCompleted = false;
+
+// 更新计时器
+function updateTimer() {
+    if (gameCompleted) return;
+    
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    document.getElementById('timer').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+setInterval(updateTimer, 1000);
+
+// 单词卡点击处理
+document.querySelectorAll('.word-card').forEach(card => {
+    card.addEventListener('click', () => {
+        if (gameCompleted || card.classList.contains('correct')) return;
+        
+        // 如果已经选中，取消选中
+        if (card.classList.contains('selected')) {
+            card.classList.remove('selected');
+            selectedCards = selectedCards.filter(c => c !== card);
+            document.getElementById('check-btn').disabled = true;
+            return;
+        }
+        
+        // 同一列只能选择一个
+        const isEnglish = card.classList.contains('english');
+        const sameTypeCards = document.querySelectorAll(
+            isEnglish ? '.english.selected' : '.chinese.selected'
+        );
+        sameTypeCards.forEach(c => {
+            c.classList.remove('selected');
+            selectedCards = selectedCards.filter(sc => sc !== c);
+        });
+        
+        // 添加新选中的卡片
+        card.classList.add('selected');
+        selectedCards.push(card);
+        
+        // 如果选中了两个卡片，启用检查按钮
+        document.getElementById('check-btn').disabled = selectedCards.length !== 2;
+    });
+});
+
+// 检查答案
+document.getElementById('check-btn').addEventListener('click', () => {
+    if (selectedCards.length !== 2) return;
+    
+    const [card1, card2] = selectedCards;
+    const isCorrect = card1.dataset.id === card2.dataset.id;
+    
+    if (isCorrect) {
+        card1.classList.add('correct');
+        card2.classList.add('correct');
+        matches.push({
+            word_id: card1.dataset.id,
+            correct: true
+        });
+    } else {
+        card1.classList.add('wrong');
+        card2.classList.add('wrong');
+        errorCount++;
+        document.getElementById('error-count').textContent = errorCount;
+        matches.push({
+            word_id: card1.dataset.id,
+            correct: false
+        });
+        
+        // 短暂显示错误状态后恢复
+        setTimeout(() => {
+            card1.classList.remove('wrong', 'selected');
+            card2.classList.remove('wrong', 'selected');
+        }, 1000);
+    }
+    
+    selectedCards = [];
+    document.getElementById('check-btn').disabled = true;
+    
+    // 检查是否完成所有配对
+    const correctPairs = document.querySelectorAll('.correct').length;
+    const totalPairs = document.querySelectorAll('.word-card').length;
+    
+    if (correctPairs === totalPairs) {
+        gameCompleted = true;
+        document.getElementById('check-btn').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'inline-block';
+        
+        // 提交学习记录
+        submitResult();
+    }
+});
+
+// 提交结果
+async function submitResult() {
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    
+    try {
+        const response = await fetch('/api/submit_matching', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                word_set_id: {{ word_set.id }},
+                matches: matches,
+                error_count: errorCount,
+                time_spent: timeSpent
+            })
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+            console.error('提交失败:', result.message);
+        }
+    } catch (error) {
+        console.error('提交错误:', error);
+    }
+}
+
+// 下一组单词
+document.getElementById('next-btn').addEventListener('click', () => {
+    window.location.reload();
+});
+</script>
+{% endblock %} 

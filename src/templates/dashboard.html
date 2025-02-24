@@ -1,0 +1,12 @@
+<div class="word-set-card">
+    <h3>{{ word_set.name }}</h3>
+    <p>{{ word_set.description }}</p>
+    <div class="word-set-actions">
+        <a href="{{ url_for('word_matching', word_set_id=word_set.id) }}" class="btn-primary">
+            <span class="icon">🎮</span> 单词配对
+        </a>
+        <a href="{{ url_for('word_review', word_set_id=word_set.id) }}" class="btn-secondary">
+            <span class="icon">📚</span> 错词复习
+        </a>
+    </div>
+</div> 
