@@ -1,8 +1,4 @@
--- 首先删除有外键关联的表数据
-DELETE FROM word_set_items;
-DELETE FROM learning_records;
-DELETE FROM words;
-DELETE FROM word_sets;
+
 
 -- 重置自增ID（如果需要）
 ALTER SEQUENCE word_sets_id_seq RESTART WITH 1;

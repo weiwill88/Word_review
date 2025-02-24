@@ -8,8 +8,8 @@
                 "maxLambdaSize": "15mb",
                 "runtime": "python3.9",
                 "includeFiles": [
-                    "src/templates/**",
-                    "static/**"
+                    "src/**",
+                    "requirements.txt"
                 ]
             }
         }
@@ -17,15 +17,15 @@
     "routes": [
         {
             "src": "/static/(.*)",
-            "dest": "/static/$1"
+            "dest": "/src/static/$1"
         },
         {
             "src": "/(.*)",
-            "dest": "src/app.py"
+            "dest": "/src/app.py"
         }
     ],
     "env": {
-        "PYTHONPATH": "src",
+        "PYTHONPATH": ".",
         "FLASK_APP": "src/app.py",
         "FLASK_ENV": "production"
     }
