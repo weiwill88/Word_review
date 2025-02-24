@@ -164,11 +164,20 @@ def word_matching():
     try:
         # 获取用户当前进度
         user_progress = supabase.rpc('get_user_progress', {'user_id': current_user.id}).execute()
+        current_level = 1  # 默认级别
+        
+        if user_progress and user_progress.data:
+            # 如果返回的是列表且不为空
+            if isinstance(user_progress.data, list) and len(user_progress.data) > 0:
+                current_level = user_progress.data[0]['current_level']
+            # 如果返回的是字典
+            elif isinstance(user_progress.data, dict):
+                current_level = user_progress.data['current_level']
         
         # 获取适合用户水平的单词集
         word_set = supabase.table('word_sets')\
             .select('*')\
-            .eq('difficulty_level', user_progress.data.get('current_level', 1))\
+            .eq('difficulty_level', current_level)\
             .execute()
         
         if not word_set.data:
@@ -199,6 +208,7 @@ def word_matching():
                             word_set=word_set.data[0],
                             word_pairs=word_pairs)
     except Exception as e:
+        app.logger.error(f'加载单词失败: {str(e)}')  # 添加日志记录
         flash(f'加载单词失败: {str(e)}')
         return redirect(url_for('dashboard'))
 
@@ -318,5 +328,23 @@ def learning_reports():
     # TODO: 实现学习报告功能
     return "学习报告功能开发中..."
 
+# 添加错误处理
+@app.errorhandler(500)
+def internal_error(error):
+    app.logger.error(f'Server Error: {error}')
+    return render_template('error.html', error=error), 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('error.html', error=error), 404
+
 if __name__ == '__main__':
+    # 启用详细的错误日志
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    
+    # 设置 Werkzeug 日志级别
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.setLevel(logging.INFO)
+    
     app.run(debug=True) 

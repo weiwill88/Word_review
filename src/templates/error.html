@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}错误 - 英语单词学习系统{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <h1>抱歉，出现了一些问题</h1>
+    <p class="error-message">{{ error }}</p>
+    <div class="error-actions">
+        <a href="{{ url_for('index') }}" class="btn-primary">返回首页</a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard') }}" class="btn-secondary">返回控制台</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.error-container {
+    max-width: 600px;
+    margin: 60px auto;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.error-message {
+    margin: 20px 0;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.error-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 30px;
+}
+</style>
+{% endblock %} 

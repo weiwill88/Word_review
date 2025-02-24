@@ -168,14 +168,17 @@ BEGIN
         FROM learning_records lr
         JOIN word_sets ws ON lr.word_set_id = ws.id
         JOIN word_set_items wsi ON ws.id = wsi.word_set_id
-        WHERE lr.user_id = user_id
+        WHERE lr.user_id = get_user_progress.user_id
     )
     SELECT 
-        CASE 
-            WHEN us.avg_accuracy >= 80 AND us.avg_difficulty < 5 THEN us.avg_difficulty + 1
-            WHEN us.avg_accuracy < 60 AND us.avg_difficulty > 1 THEN us.avg_difficulty - 1
-            ELSE COALESCE(us.avg_difficulty, 1)
-        END as current_level,
+        COALESCE(
+            CASE 
+                WHEN us.avg_accuracy >= 80 AND us.avg_difficulty < 5 THEN us.avg_difficulty + 1
+                WHEN us.avg_accuracy < 60 AND us.avg_difficulty > 1 THEN us.avg_difficulty - 1
+                ELSE us.avg_difficulty
+            END,
+            1
+        )::INTEGER as current_level,
         (SELECT COUNT(*) FROM words) as total_words,
         COALESCE(us.total_completed, 0) as completed_words,
         COALESCE(us.avg_accuracy, 0) as accuracy
