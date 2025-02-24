@@ -51,7 +51,7 @@
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Microsoft YaHei', sans-serif;
+    font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -68,7 +68,8 @@ body {
     font-size: 16px;
     color: #495057;
     z-index: 1000;
-    position: relative;
+    position: sticky;
+    top: 0;
 }
 
 .nav-item {
@@ -91,7 +92,6 @@ body {
     color: red;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     z-index: 1000;
-    position: relative;
 }
 
 #game-container {
@@ -100,7 +100,6 @@ body {
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
-    position: relative;
 }
 
 .column {
@@ -124,7 +123,6 @@ body {
     font-size: 30px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     user-select: none;
-    position: relative;
 }
 
 .english {
@@ -209,17 +207,17 @@ body {
 }
 
 @media (max-width: 768px) {
+    body {
+        overflow: hidden;
+    }
+
     #nav-bar {
         padding: 5px 10px;
         font-size: 14px;
-        flex-wrap: wrap;
     }
 
     .nav-item {
-        flex: 1 1 auto;
-        justify-content: center;
-        padding: 5px 0;
-        min-width: 120px;
+        font-size: 12px;
     }
 
     #instruction {
@@ -228,31 +226,13 @@ body {
     }
 
     #game-container {
-        flex-direction: column;
         padding: 10px;
     }
-    
+
     .bubble {
-        font-size: 20px;
-        padding: 10px 20px;
+        font-size: 24px;
+        padding: 12px 24px;
         margin: 8px;
-        width: 80%;
-        text-align: center;
-    }
-
-    #completion-message {
-        width: 90%;
-        max-height: 90vh;
-        overflow-y: auto;
-        font-size: 16px;
-        padding: 20px;
-    }
-
-    .completion-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 20px;
     }
 }
 
