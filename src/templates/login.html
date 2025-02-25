@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}登录 - 英语单词学习系统{% endblock %}
+{% block title %}登录 - 英语单词复习游戏{% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <h2>登录</h2>
+    <h2>欢迎来到单词配对游戏</h2>
+    <p class="game-intro">这是一个有趣的英语单词复习游戏，通过配对英文单词和中文意思来帮助你记忆单词！</p>
     <form method="POST" action="{{ url_for('login') }}">
         <div class="form-group">
-            <label for="username">姓名：</label>
-            <input type="text" id="username" name="username" required placeholder="请输入你的真实姓名">
+            <label for="username">你的名字</label>
+            <input type="text" id="username" name="username" required placeholder="请输入你的名字" autocomplete="off">
         </div>
-        <button type="submit" class="btn btn-primary">登录</button>
+        <button type="submit" class="btn btn-primary">开始游戏</button>
     </form>
-    <p>还没有账号？<a href="{{ url_for('register') }}">点击这里注册</a></p>
+    <p>第一次使用？<a href="{{ url_for('register') }}">创建账号</a></p>
 </div>
 {% endblock %} 

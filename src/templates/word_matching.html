@@ -6,7 +6,6 @@
 <div id="nav-bar">
     <div class="nav-item">当前词组：<span>{{ word_set.name }}</span></div>
     <div class="nav-item">已用时间：<span id="current-time">00:00</span></div>
-    <div class="nav-item">正确率：<span id="accuracy">100%</span></div>
 </div>
 <div id="instruction">请完成英文单词和中文单词的配对</div>
 <div id="game-container" 
@@ -36,6 +35,7 @@
 <div id="completion-message">
     <p>恭喜完成所有配对！</p>
     <p>配对错误次数：<span id="error-count">0</span></p>
+    <p>正确率：<span id="final-accuracy">100%</span></p>
     <p>完成时间：<span id="completion-time"></span></p>
     <p>花费时长：<span id="time-spent"></span></p>
     <div id="error-words">
@@ -54,7 +54,7 @@
 <style>
 body {
     margin: 0;
-    overflow: hidden;
+    overflow: auto;
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
@@ -104,6 +104,7 @@ body {
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
+    min-height: 0;
 }
 
 .column {
@@ -127,6 +128,7 @@ body {
     font-size: 26px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     user-select: none;
+    position: relative;
 }
 
 .english {
@@ -144,10 +146,39 @@ body {
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
 }
 
-.matched {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s;
+.bubble.matched {
+    opacity: 0.7 !important;
+    pointer-events: none !important;
+    transition: all 0.5s !important;
+    transform: scale(0.95) !important;
+    border: 3px solid #4CAF50 !important;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* 配对完成效果 */
+.bubble.matched::after {
+    content: '✓' !important;
+    position: absolute !important;
+    top: -10px !important;
+    right: -10px !important;
+    background: #4CAF50 !important;
+    color: white !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 14px !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+    animation: bounce 0.5s ease !important;
+    z-index: 100 !important;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-10px);}
+    60% {transform: translateY(-5px);}
 }
 
 #completion-message {
@@ -155,7 +186,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     padding: 30px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
@@ -163,6 +194,9 @@ body {
     font-size: 24px;
     display: none;
     z-index: 2000;
+    max-height: 90vh;
+    overflow-y: auto;
+    max-width: 90vw;
 }
 
 #canvas-effects {
@@ -184,31 +218,8 @@ body {
     transition: opacity 0.3s;
 }
 
-.connecting-line {
-    position: absolute;
-    height: 2px;
-    background: none;
-    border-top: 2px dashed #e0e0e0;
-    transform-origin: left center;
-    z-index: 900;
-    opacity: 0;
-    transition: all 0.5s ease;
-}
-
-.connecting-line::after {
-    content: '';
-    position: absolute;
-    right: -6px;
-    top: -4px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid #e0e0e0;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-}
-
-.connecting-line.show {
-    opacity: 1;
+.connecting-line, .connecting-line::after {
+    display: none;
 }
 
 .central-icon {
@@ -231,7 +242,7 @@ body {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 2000;
     display: none;
 }
 
@@ -257,7 +268,7 @@ body {
 
 @media (max-width: 768px) {
     body {
-        overflow: hidden;
+        overflow: auto;
     }
 
     #nav-bar {
@@ -288,6 +299,7 @@ body {
         width: 85%;
         padding: 20px;
         font-size: 16px;
+        max-height: 80vh;
     }
 
     .completion-buttons {
@@ -340,6 +352,30 @@ body {
     gap: 20px;
     flex-wrap: wrap;
 }
+
+.checkmark {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #4CAF50;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 100;
+    animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-10px);}
+    60% {transform: translateY(-5px);}
+}
 </style>
 {% endblock %}
 
@@ -357,6 +393,11 @@ let selectedBubble = null;
 let canvas = document.getElementById('canvas-effects');
 let ctx = canvas.getContext('2d');
 
+// 初始化时调用一次，确保按钮状态正确
+document.addEventListener('DOMContentLoaded', function() {
+    checkShowNextButton();
+});
+
 // 更新计时器
 function updateTimer() {
     const currentTime = new Date();
@@ -367,12 +408,12 @@ function updateTimer() {
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-// 更新正确率
-function updateAccuracy() {
-    const totalAttempts = errorCount + document.querySelectorAll('.matched').length / 2;
+// 计算正确率
+function calculateAccuracy() {
+    const totalAttempts = errorCount + WORD_PAIRS_LENGTH;
     const accuracy = totalAttempts === 0 ? 100 : 
         Math.round((1 - errorCount / totalAttempts) * 100);
-    document.getElementById('accuracy').textContent = `${accuracy}%`;
+    return `${accuracy}%`;
 }
 
 // 启动计时器
@@ -393,40 +434,6 @@ function speakWord(word) {
         utterance.lang = 'en-US';
         speechSynthesis.speak(utterance);
     }
-}
-
-// 创建连接线
-function createLine(start, end) {
-    const line = document.createElement('div');
-    line.className = 'connecting-line';
-    document.getElementById('game-container').appendChild(line);
-
-    const startRect = start.getBoundingClientRect();
-    const endRect = end.getBoundingClientRect();
-    const containerRect = gameContainer.getBoundingClientRect();
-    const scrollTop = gameContainer.scrollTop;
-
-    // 修正计算方式，使用offsetTop来获取元素相对于容器的实际位置
-    const startX = startRect.right - containerRect.left;
-    const startY = start.offsetTop + (start.offsetHeight / 2);
-    const endX = endRect.left - containerRect.left;
-    const endY = end.offsetTop + (end.offsetHeight / 2);
-
-    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-    const angle = Math.atan2(endY - startY, endX - startX);
-
-    // 设置连线位置和角度
-    line.style.width = `${distance}px`;
-    line.style.left = `${startX}px`;
-    line.style.top = `${startY}px`;
-    line.style.transform = `rotate(${angle}rad)`;
-
-    // 添加显示动画
-    requestAnimationFrame(() => {
-        line.classList.add('show');
-    });
-
-    return line;
 }
 
 // 创建中央图标
@@ -451,9 +458,6 @@ function createCentralIcon(isCorrect) {
         icon.classList.remove('show');
         setTimeout(() => icon.remove(), 300);
     }, 1000);
-
-    // 更新正确率
-    updateAccuracy();
 }
 
 // 检查是否完成所有配对
@@ -465,17 +469,29 @@ function checkCompletion() {
         const minutes = Math.floor(timeSpent / 60);
         const seconds = timeSpent % 60;
 
+        // 计算最终正确率
+        const accuracy = calculateAccuracy();
+        
         document.getElementById('error-count').textContent = errorCount;
         document.getElementById('completion-time').textContent = endTime.toLocaleString();
         document.getElementById('time-spent').textContent = `${minutes} 分 ${seconds} 秒`;
+        document.getElementById('final-accuracy').textContent = accuracy;
 
         const errorWordsList = document.getElementById('error-words-list');
         errorWordsList.innerHTML = '';
-        errorWords.forEach(word => {
-            const li = document.createElement('li');
-            li.textContent = `${word.english} - ${word.chinese}`;
-            errorWordsList.appendChild(li);
-        });
+
+        // 只在有错误单词时显示错误单词部分
+        const errorWordsSection = document.getElementById('error-words');
+        if (errorWords.length > 0) {
+            errorWordsSection.style.display = 'block';
+            errorWords.forEach(word => {
+                const li = document.createElement('li');
+                li.textContent = `${word.english} - ${word.chinese}`;
+                errorWordsList.appendChild(li);
+            });
+        } else {
+            errorWordsSection.style.display = 'none';
+        }
 
         // 保存学习记录
         const recordData = {
@@ -522,11 +538,17 @@ function resetGame() {
         bubble.classList.remove('matched', 'selected');
         bubble.style.opacity = '1';
         bubble.style.pointerEvents = 'auto';
+        bubble.style.transform = 'none';
+        bubble.style.border = 'none';
+        bubble.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+        
+        // 移除对勾图标
+        const checkmarks = bubble.querySelectorAll('.checkmark');
+        checkmarks.forEach(checkmark => checkmark.remove());
     });
     
-    // 重置计时器和正确率显示
+    // 重置计时器
     document.getElementById('current-time').textContent = '00:00';
-    document.getElementById('accuracy').textContent = '100%';
     
     // 重新打乱中文单词顺序
     const chineseColumn = document.querySelector('.chinese-column');
@@ -541,8 +563,11 @@ function resetGame() {
 function checkShowNextButton() {
     const matchedPairs = document.querySelectorAll('.matched').length / 2;
     const nextSetContainer = document.getElementById('next-set-container');
+    
     if (matchedPairs >= WORD_PAIRS_LENGTH / 2) { // 完成一半以上显示下一组按钮
         nextSetContainer.style.display = 'block';
+    } else {
+        nextSetContainer.style.display = 'none';
     }
 }
 
@@ -572,30 +597,65 @@ document.querySelectorAll('.bubble').forEach(bubble => {
                 // 显示正确图标
                 createCentralIcon(true);
 
-                // 创建连接线
                 const englishBubble = selectedBubble.classList.contains('english') ? 
                     selectedBubble : this;
                 const chineseBubble = selectedBubble.classList.contains('chinese') ? 
                     selectedBubble : this;
 
-                // 移除之前的连线（如果存在）
-                const existingLines = document.querySelectorAll('.connecting-line');
-                existingLines.forEach(line => {
-                    if (line.dataset.englishId === englishBubble.dataset.id) {
-                        line.remove();
-                    }
-                });
-
-                const line = createLine(englishBubble, chineseBubble);
-                // 添加标识，以便后续可以找到对应的连线
-                line.dataset.englishId = englishBubble.dataset.id;
-
+                // 配对成功动画
                 setTimeout(() => {
+                    // 确保所有样式重置，防止冲突
+                    selectedBubble.style.opacity = '0.7';
+                    selectedBubble.style.pointerEvents = 'none';
+                    selectedBubble.style.transform = 'scale(0.95)';
+                    selectedBubble.style.border = '3px solid #4CAF50';
+                    selectedBubble.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.4)';
+                    selectedBubble.style.position = 'relative';
+                    
+                    this.style.opacity = '0.7';
+                    this.style.pointerEvents = 'none';
+                    this.style.transform = 'scale(0.95)';
+                    this.style.border = '3px solid #4CAF50';
+                    this.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.4)';
+                    this.style.position = 'relative';
+                    
+                    // 添加matched类
                     selectedBubble.classList.add('matched');
                     this.classList.add('matched');
+                    
+                    // 创建对勾图标并附加到每个匹配的气泡
+                    [selectedBubble, this].forEach(bubble => {
+                        const checkmark = document.createElement('div');
+                        checkmark.className = 'checkmark';
+                        checkmark.innerHTML = '✓';
+                        checkmark.style.position = 'absolute';
+                        checkmark.style.top = '-10px';
+                        checkmark.style.right = '-10px';
+                        checkmark.style.background = '#4CAF50';
+                        checkmark.style.color = 'white';
+                        checkmark.style.width = '24px';
+                        checkmark.style.height = '24px';
+                        checkmark.style.borderRadius = '50%';
+                        checkmark.style.display = 'flex';
+                        checkmark.style.justifyContent = 'center';
+                        checkmark.style.alignItems = 'center';
+                        checkmark.style.fontSize = '14px';
+                        checkmark.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                        checkmark.style.zIndex = '100';
+                        checkmark.style.animation = 'bounce 0.5s ease';
+                        bubble.appendChild(checkmark);
+                    });
+                    
+                    // 播放配对成功的英语单词
+                    if (englishBubble) {
+                        setTimeout(() => {
+                            speakWord(englishBubble.textContent.trim());
+                        }, 300);
+                    }
+                    
                     checkCompletion();
                     checkShowNextButton(); // 检查是否显示下一组按钮
-                }, 500);
+                }, 300);
             } else {
                 errorCount++;
                 // 显示错误图标

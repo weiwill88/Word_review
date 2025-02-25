@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}注册 - 英语单词学习系统{% endblock %}
+{% block title %}注册 - 英语单词复习游戏{% endblock %}
 
 {% block content %}
 <div class="auth-container">
-    <h2>注册</h2>
+    <h2>创建账号</h2>
+    <p class="game-intro">加入我们的单词配对游戏，通过有趣的方式学习记忆英语单词！</p>
     <form method="POST" action="{{ url_for('register') }}">
         <div class="form-group">
-            <label for="username">请输入你的真实姓名：</label>
-            <input type="text" id="username" name="username" required>
+            <label for="username">你的名字</label>
+            <input type="text" id="username" name="username" required placeholder="请输入你的名字" autocomplete="off">
         </div>
-        <button type="submit" class="btn btn-primary">注册</button>
+        <button type="submit" class="btn btn-primary">创建账号</button>
     </form>
-    <p>已有账号？<a href="{{ url_for('login') }}">点击登录</a></p>
+    <p>已有账号？<a href="{{ url_for('login') }}">返回登录</a></p>
 </div>
 {% endblock %} 
