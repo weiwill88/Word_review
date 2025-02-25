@@ -128,7 +128,7 @@ body {
     font-size: 26px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     user-select: none;
-    position: relative;
+    position: relative !important;
 }
 
 .english {
@@ -641,10 +641,15 @@ document.querySelectorAll('.bubble').forEach(bubble => {
                         checkmark.style.alignItems = 'center';
                         checkmark.style.fontSize = '14px';
                         checkmark.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-                        checkmark.style.zIndex = '100';
+                        checkmark.style.zIndex = '9999';
                         checkmark.style.animation = 'bounce 0.5s ease';
                         bubble.appendChild(checkmark);
                     });
+                    
+                    // 在对勾创建后添加
+                    setTimeout(() => {
+                        checkmark.style.transform = 'translateY(-5px)';
+                    }, 100);
                     
                     // 播放配对成功的英语单词
                     if (englishBubble) {

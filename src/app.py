@@ -88,7 +88,7 @@ def login():
                     'role': 'teacher'
                 })
                 login_user(user)
-                return redirect(url_for('word_matching'))
+                return redirect(url_for('teacher_dashboard'))
             
             # 查询学生用户
             user_data = supabase.table('users').select('*').eq('username', username).execute()
